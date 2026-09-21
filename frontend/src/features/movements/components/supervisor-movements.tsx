@@ -57,15 +57,14 @@ export function SupervisorMovements() {
   const [requiresMaintenance, setRequiresMaintenance] = useState(false);
   const [missing, setMissing] = useState<Record<number, number>>({});
   const [returnRemarks, setReturnRemarks] = useState("");
-  const [transferAllocationId, setTransferAllocationId] = useState(0);
-  const [transferDate, setTransferDate] = useState(today);
+  const [transferReturnId, setTransferReturnId] = useState(0);
   const [toTechnicianId, setToTechnicianId] = useState(0);
-  const [projectSiteId, setProjectSiteId] = useState(0);
   const [reason, setReason] = useState("");
   const [transferRemarks, setTransferRemarks] = useState("");
 
   const selectedReturnAllocation = references?.allocations.find((item) => item.id === returnAllocationId);
-  const selectedTransferAllocation = references?.allocations.find((item) => item.id === transferAllocationId);
+  const selectedTransferReturn = returns.find((item) => item.id === transferReturnId);
+  const eligibleReturns = returns.filter((item) => !item.requires_maintenance && !["damaged", "requires maintenance"].includes(item.condition.toLowerCase()) && new Date(item.returned_at).toLocaleDateString("en-CA") === today() && !transfers.some((transfer) => transfer.source_return === item.id));
   const returnTechnicians = useMemo(() => {
     if (!selectedReturnAllocation || !references) return [];
     const ids = new Set([selectedReturnAllocation.custodian, ...selectedReturnAllocation.additional_technicians]);
@@ -96,11 +95,6 @@ export function SupervisorMovements() {
     setReturnDate(localDateTime());
     setExpectedReturnDate(allocation?.expected_return?.slice(0, 10) ?? "");
   }
-  function chooseTransferAllocation(id: number) {
-    setTransferAllocationId(id);
-    const allocation = references?.allocations.find((item) => item.id === id);
-    setProjectSiteId(allocation?.project_site ?? 0); setToTechnicianId(0);
-  }
   function toggleMissing(accessoryId: number) {
     setMissing((current) => { const next = { ...current }; if (next[accessoryId]) delete next[accessoryId]; else next[accessoryId] = 1; return next; });
   }
@@ -109,7 +103,7 @@ export function SupervisorMovements() {
     setCondition("Good"); setConditionNotes(""); setRequiresMaintenance(false); setMissing({}); setReturnRemarks(""); setError("");
   }
   function resetTransfer() {
-    setTransferAllocationId(0); setTransferDate(today()); setToTechnicianId(0); setProjectSiteId(0); setReason(""); setTransferRemarks(""); setError("");
+    setTransferReturnId(0); setToTechnicianId(0); setReason(""); setTransferRemarks(""); setError("");
   }
 
   async function submitReturn(event: FormEvent<HTMLFormElement>) {
@@ -122,15 +116,19 @@ export function SupervisorMovements() {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(errorMessage(payload, "The return could not be processed."));
       resetReturn(); setNotice(`Return #${(payload as EquipmentReturn).id} was processed successfully.`); await load();
+      if (!(payload as EquipmentReturn).requires_maintenance && !["damaged", "requires maintenance"].includes((payload as EquipmentReturn).condition.toLowerCase())) {
+        setTransferReturnId((payload as EquipmentReturn).id);
+        setTab("transfers");
+      }
     } catch (cause) { setError(cause instanceof Error ? cause.message : "The return could not be processed."); }
     finally { setSaving(false); }
   }
   async function submitTransfer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedTransferAllocation || !toTechnicianId || !projectSiteId || !reason.trim()) return;
+    if (!selectedTransferReturn || !toTechnicianId || !reason.trim()) return;
     setSaving(true); setError(""); setNotice("");
     try {
-      const response = await authFetch("/api/transfers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allocation_id: selectedTransferAllocation.id, to_technician_id: toTechnicianId, project_site_id: projectSiteId, transfer_date: transferDate, reason: reason.trim(), remarks: transferRemarks.trim() }) });
+      const response = await authFetch("/api/transfers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ return_id: selectedTransferReturn.id, to_technician_id: toTechnicianId, reason: reason.trim(), remarks: transferRemarks.trim() }) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(errorMessage(payload, "The transfer request could not be created."));
       resetTransfer(); setNotice(`${(payload as Transfer).transfer_number} was submitted for approval.`); await load();
@@ -141,7 +139,8 @@ export function SupervisorMovements() {
     setReviewingId(transfer.id); setError(""); setNotice("");
     try {
       const allocation = references?.allocations.find((item) => item.id === transfer.source_allocation);
-      const response = await authFetch(`/api/transfers/${transfer.id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approve, additional_technician_ids: [], expected_return: approve ? allocation?.expected_return ?? null : null }) });
+      const returned = returns.find((item) => item.id === transfer.source_return);
+      const response = await authFetch(`/api/transfers/${transfer.id}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approve, additional_technician_ids: [], expected_return: approve ? returned?.expected_return ?? allocation?.expected_return ?? null : null }) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(errorMessage(payload, "The transfer could not be reviewed."));
       setNotice(`${transfer.transfer_number} was ${approve ? "approved" : "rejected"}.`); await load();
@@ -164,10 +163,10 @@ export function SupervisorMovements() {
       <fieldset className="rounded-lg border p-4"><legend className="px-1 text-sm font-semibold">Missing allocated accessories</legend>{selectedReturnAllocation?.accessories.length ? <div className="grid gap-2">{selectedReturnAllocation.accessories.map((item) => <div key={item.id} className="flex items-center gap-2"><label className="flex flex-1 items-center gap-2 text-xs"><input type="checkbox" checked={Boolean(missing[item.id])} onChange={() => toggleMissing(item.id)} className="accent-sky-600" />{item.description} <span className="text-slate-400">({item.quantity} issued)</span></label>{missing[item.id] ? <Input aria-label={`${item.description} missing quantity`} type="number" min={1} max={item.quantity} value={missing[item.id]} onChange={(event) => setMissing((current) => ({ ...current, [item.id]: Math.min(item.quantity, Math.max(1, Number(event.target.value))) }))} className="h-8 w-20" /> : null}</div>)}</div> : <p className="text-xs text-slate-500">{selectedReturnAllocation ? "No accessories were issued with this allocation." : "Select an allocation to see its issued accessories."}</p>}</fieldset></div>
       <Field label="Additional remarks"><textarea value={returnRemarks} onChange={(event) => setReturnRemarks(event.target.value)} className={textAreaClass} placeholder="Enter any additional return remarks" /></Field><div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={resetReturn}><RotateCcw className="size-4" />Reset</Button><Button type="submit" disabled={saving || !selectedReturnAllocation}><Check className="size-4" />{saving ? "Processing…" : "Process return"}</Button></div>
     </form></CardContent></Card><Card className="gap-3 border-0 shadow-none ring-1 ring-slate-200/80"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="size-5 text-sky-600" />Recent returns</CardTitle></CardHeader><CardContent><DashboardTable headers={["Return ID", "Equipment", "Description", "Returned by", "Return date", "Condition", "Missing accessories", "Received by"]} rows={returns.map((item) => [`#${item.id}`, item.equipment_number, item.equipment_description, item.technician_name, formatDate(item.returned_at), item.condition, item.missing_accessories.map((missingItem) => `${missingItem.description} ×${missingItem.quantity}`).join(", ") || "None", item.received_by_name])} minWidth="min-w-[950px]" /></CardContent></Card></section> :
-    <section className="space-y-5"><Card className="gap-4 border-0 shadow-none ring-1 ring-slate-200/80"><CardHeader><CardTitle className="flex items-center gap-3 text-lg"><span className="flex size-10 items-center justify-center rounded-lg bg-sky-600 text-white"><ArrowLeftRight className="size-5" /></span>Equipment transfer request</CardTitle><p className="pl-[52px] text-xs text-muted-foreground">Submit a custody transfer. Status and approval details are assigned by the review workflow.</p></CardHeader><CardContent><form onSubmit={submitTransfer} className="space-y-5"><div className="grid gap-4 md:grid-cols-3">
-      <Field label="Active allocation / equipment" required><select className={controlClass} required value={transferAllocationId || ""} onChange={(event) => chooseTransferAllocation(Number(event.target.value))}><option value="">Select allocated equipment</option>{references?.allocations.map((item) => <option key={item.id} value={item.id}>{item.equipment_number} — {item.equipment_description}</option>)}</select></Field><Field label="Current custodian"><Input readOnly value={selectedTransferAllocation ? `${selectedTransferAllocation.custodian_number} — ${selectedTransferAllocation.custodian_name}` : ""} className="h-10 bg-slate-50" placeholder="Derived from allocation" /></Field><Field label="Transfer date" required><Input type="date" required max={today()} min={selectedTransferAllocation?.allocated_at.slice(0, 10)} value={transferDate} onChange={(event) => setTransferDate(event.target.value)} className="h-10" /></Field>
-      <Field label="New custodian" required><select className={controlClass} required value={toTechnicianId || ""} onChange={(event) => setToTechnicianId(Number(event.target.value))}><option value="">Select technician</option>{references?.technicians.filter((item) => item.id !== selectedTransferAllocation?.custodian).map((item) => <option key={item.id} value={item.id}>{item.technician_number} — {item.name}</option>)}</select></Field><Field label="Project / Site" required><select className={controlClass} required value={projectSiteId || ""} onChange={(event) => setProjectSiteId(Number(event.target.value))}><option value="">Select project or site</option>{references?.projects.map((site) => <option key={site.id} value={site.id}>{site.name} — {site.client_name}</option>)}</select></Field><Field label="Reason for transfer" required><select className={controlClass} required value={reason} onChange={(event) => setReason(event.target.value)}><option value="">Select reason</option><option value="Project requirement">Project requirement</option><option value="Technician reassignment">Technician reassignment</option><option value="Site relocation">Site relocation</option><option value="Maintenance">Maintenance</option><option value="Other">Other</option></select></Field></div>
-      <Field label="Transfer remarks"><textarea value={transferRemarks} onChange={(event) => setTransferRemarks(event.target.value)} className={textAreaClass} placeholder="Reason details or handover instructions" /></Field><div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={resetTransfer}><RotateCcw className="size-4" />Reset</Button><Button type="submit" disabled={saving || !selectedTransferAllocation}><ArrowLeftRight className="size-4" />{saving ? "Submitting…" : "Submit transfer"}</Button></div>
+    <section className="space-y-5"><Card className="gap-4 border-0 shadow-none ring-1 ring-slate-200/80"><CardHeader><CardTitle className="flex items-center gap-3 text-lg"><span className="flex size-10 items-center justify-center rounded-lg bg-sky-600 text-white"><ArrowLeftRight className="size-5" /></span>Equipment transfer request</CardTitle><p className="pl-[52px] text-xs text-muted-foreground">Receive the equipment first, then transfer it using its Return ID on the same day.</p></CardHeader><CardContent><form onSubmit={submitTransfer} className="space-y-5"><div className="grid gap-4 md:grid-cols-3">
+      <Field label="Received return ID / equipment" required><select className={controlClass} required value={transferReturnId || ""} onChange={(event) => { const id = Number(event.target.value); setTransferReturnId(id); setToTechnicianId(0); }}><option value="">Select today&apos;s received return</option>{eligibleReturns.map((item) => <option key={item.id} value={item.id}>#{item.id} — {item.equipment_number} · {item.returning_from_name}</option>)}</select></Field><Field label="Previous custodian"><Input readOnly value={selectedTransferReturn?.technician_name ?? ""} className="h-10 bg-slate-50" placeholder="Derived from return" /></Field><Field label="Transfer date"><Input readOnly value={selectedTransferReturn ? formatDate(selectedTransferReturn.returned_at) : ""} className="h-10 bg-slate-50" placeholder="Same as return date" /></Field>
+      <Field label="New custodian" required><select className={controlClass} required value={toTechnicianId || ""} onChange={(event) => setToTechnicianId(Number(event.target.value))}><option value="">Select technician</option>{references?.technicians.filter((item) => item.id !== selectedTransferReturn?.technician).map((item) => <option key={item.id} value={item.id}>{item.technician_number} — {item.name}</option>)}</select></Field><Field label="Project / Site"><Input readOnly value={selectedTransferReturn?.returning_from_name ?? ""} className="h-10 bg-slate-50" placeholder="Derived from return" /></Field><Field label="Reason for transfer" required><select className={controlClass} required value={reason} onChange={(event) => setReason(event.target.value)}><option value="">Select reason</option><option value="Project requirement">Project requirement</option><option value="Technician reassignment">Technician reassignment</option><option value="Site relocation">Site relocation</option><option value="Maintenance">Maintenance</option><option value="Other">Other</option></select></Field></div>
+      <Field label="Transfer remarks"><textarea value={transferRemarks} onChange={(event) => setTransferRemarks(event.target.value)} className={textAreaClass} placeholder="Reason details or handover instructions" /></Field><div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={resetTransfer}><RotateCcw className="size-4" />Reset</Button><Button type="submit" disabled={saving || !selectedTransferReturn}><ArrowLeftRight className="size-4" />{saving ? "Submitting…" : "Submit transfer"}</Button></div>
     </form></CardContent></Card><Card className="gap-3 border-0 shadow-none ring-1 ring-slate-200/80"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><ArrowLeftRight className="size-5 text-sky-600" />Transfer requests</CardTitle></CardHeader><CardContent><DashboardTable headers={["Transfer ID", "Equipment", "From", "To", "Project / Site", "Date", "Status", "Actions"]} rows={transfers.map((item) => [item.transfer_number, `${item.equipment_number} — ${item.equipment_description}`, item.from_technician_name, item.to_technician_name, item.project_site_name, formatDate(item.transfer_date), <StatusPill key={`status-${item.id}`} tone={item.status === "approved" ? "green" : item.status === "rejected" ? "red" : "amber"}>{item.status_name}</StatusPill>, item.status === "pending" ? <div key={`actions-${item.id}`} className="flex gap-1"><Button type="button" size="sm" disabled={reviewingId === item.id} onClick={() => void reviewTransfer(item, true)}><Check className="size-4" />Approve</Button><Button type="button" size="sm" variant="outline" disabled={reviewingId === item.id} onClick={() => void reviewTransfer(item, false)}><X className="size-4" />Reject</Button></div> : item.approved_by_name ?? "—"])} minWidth="min-w-[1050px]" /></CardContent></Card></section>}
   </div>;
 }

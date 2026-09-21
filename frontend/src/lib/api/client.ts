@@ -72,6 +72,8 @@ export async function downloadAuthenticatedFile(url: string, filename: string) {
   const link = document.createElement("a");
   link.href = objectUrl;
   link.download = filename;
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(objectUrl);
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }

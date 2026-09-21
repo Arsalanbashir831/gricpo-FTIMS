@@ -34,6 +34,7 @@ export interface Transfer {
   id: number;
   transfer_number: string;
   source_allocation: number;
+  source_return: number | null;
   equipment: number;
   equipment_number: string;
   equipment_description: string;

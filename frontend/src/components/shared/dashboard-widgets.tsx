@@ -25,7 +25,7 @@ export function DashboardTable({ headers, rows, minWidth = "min-w-[580px]" }: { 
             </tr>
           ) : (
             rows.map((row, index) => (
-              <tr key={String(row[0] ?? index)} className="border-b border-slate-100 last:border-0">
+              <tr key={index} className="border-b border-slate-100 last:border-0">
                 {row.map((cell, cellIndex) => (
                   <td key={cellIndex} className="px-3 py-3 whitespace-nowrap text-slate-700">
                     {cell}
