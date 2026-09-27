@@ -7,7 +7,7 @@ import { getStoredAccessToken } from "@/features/auth/client/token-storage";
 
 // Strip trailing /api so that the relative path from the backend (/api/equipment/…)
 // is appended correctly — NEXT_PUBLIC_API_BASE_URL may already end with /api.
-const API_ORIGIN = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "");
+const API_ORIGIN = 'https://apiftims.gripcosaudia.com'
 
 function resolvePhotoUrl(src: string): string {
   // If the backend returned a relative path (e.g. /api/equipment/2/photo/),
