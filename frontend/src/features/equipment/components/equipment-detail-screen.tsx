@@ -1,10 +1,10 @@
 "use client";
-/* eslint-disable @next/next/no-img-element -- backend media URLs are runtime values */
+
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Pencil, QrCode, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, QrCode, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import type { Equipment } from "@/features/equipment/types";
 import { equipmentDetailUrl } from "@/features/equipment/lib/equipment-detail-url";
 import { usePageOrigin } from "@/hooks/use-page-origin";
 import { authFetch } from "@/lib/api/client";
+import { EquipmentPhoto } from "@/features/equipment/components/equipment-photo";
 
 function displayDate(value: string | null) {
   if (!value) return "No calibration recorded";
@@ -71,7 +72,7 @@ export function EquipmentDetailScreen({ id }: { id: string }) {
     {error ? <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
     <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-5">
-        <Card className="border-0 ring-1 ring-slate-200/80"><CardHeader><CardTitle>Equipment photo</CardTitle></CardHeader><CardContent><div className="flex aspect-[16/9] items-center justify-center overflow-hidden rounded-lg border bg-slate-50">{equipment.photo ? <img src={equipment.photo} alt={equipment.description} className="size-full object-contain" /> : <div className="text-center text-slate-400"><Camera className="mx-auto size-10" /><p className="mt-2 text-sm">No photo added</p></div>}</div></CardContent></Card>
+        <Card className="border-0 ring-1 ring-slate-200/80"><CardHeader><CardTitle>Equipment photo</CardTitle></CardHeader><CardContent><div className="flex aspect-[16/9] items-center justify-center overflow-hidden rounded-lg border bg-slate-50"><EquipmentPhoto src={equipment.photo} alt={equipment.description} className="size-full object-contain" /></div></CardContent></Card>
         <Card className="border-0 ring-1 ring-slate-200/80"><CardHeader><CardTitle>Equipment information</CardTitle></CardHeader><CardContent><dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{fields.map(([label, value]) => <div key={label} className="border-b border-slate-100 pb-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-medium">{value}</dd></div>)}</dl>{equipment.notes ? <div className="mt-5"><h3 className="text-xs text-muted-foreground">Notes</h3><p className="mt-1 whitespace-pre-wrap text-sm">{equipment.notes}</p></div> : null}</CardContent></Card>
       </div>
       <Card className="border-0 ring-1 ring-slate-200/80 xl:sticky xl:top-20"><CardHeader><CardTitle>Equipment QR code</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex min-h-56 items-center justify-center rounded-lg border bg-white p-4">{detailUrl ? <QrCodeSvg value={detailUrl} className="size-48" /> : <QrCode className="size-10 text-slate-300" />}</div><p className="break-all rounded-lg bg-slate-50 p-2 font-mono text-xs">{detailUrl || "Loading detail URL…"}</p><p className="text-xs text-muted-foreground">Backend QR token: {equipment.qr_token}</p></CardContent></Card>
