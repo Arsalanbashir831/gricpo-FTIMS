@@ -40,7 +40,7 @@ function profile(input: {
   status?: TechnicianStatus; equipmentCount: number; skills?: string[];
   projects?: string[]; reportingTo?: string;
 }): TechnicianRecord {
-  const id = `TECH-${String(input.id).padStart(3, "0")}`;
+  const id = `GRIPCO_TECH_${String(input.id).padStart(4, "0")}`;
   const email = `${input.name.toLowerCase().replaceAll(/[^a-z]+/g, ".").replace(/\.$/, "")}@gripco.com`;
   const assignedEquipmentIds = Array.from({ length: input.equipmentCount }, (_, index) => equipmentIds[(input.id + index - 1) % equipmentIds.length]);
   return {

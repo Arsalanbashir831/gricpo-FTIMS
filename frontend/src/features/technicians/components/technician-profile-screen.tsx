@@ -18,7 +18,7 @@ function Field({ label, name, children }: { label: string; name: string; childre
   return <label htmlFor={name} className="grid gap-1.5 text-sm font-medium text-slate-700">{label}{children}</label>;
 }
 
-export function TechnicianProfileScreen() {
+export function TechnicianProfileScreen({ technicianId }: { technicianId?: number } = {}) {
   const router = useRouter();
   const [profile, setProfile] = useState<Technician | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,8 +54,10 @@ export function TechnicianProfileScreen() {
       try {
         const accountResponse = await authFetch("/api/auth/me");
         const account = await accountResponse.json() as CurrentAccount;
-        if (!accountResponse.ok || account.role !== "technician" || account.approval_status !== "approved" || !account.technician) throw new Error("An approved technician account is required.");
-        const profileResponse = await authFetch(`/api/technicians/${account.technician}`);
+        const canManageTechnicians = account.is_staff === true || account.is_superuser === true || account.role === "supervisor";
+        const targetId = technicianId ?? account.technician;
+        if (!accountResponse.ok || (!canManageTechnicians && (account.role !== "technician" || account.approval_status !== "approved")) || !targetId) throw new Error("An approved technician account is required.");
+        const profileResponse = await authFetch(`/api/technicians/${targetId}`);
         const data = await profileResponse.json();
         if (!profileResponse.ok) throw new Error(data.detail || "Your profile could not be loaded.");
         if (active) setProfile(data as Technician);
@@ -96,10 +98,10 @@ export function TechnicianProfileScreen() {
           </span>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-              My technician profile
+              {technicianId ? "Edit technician profile" : "My technician profile"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Complete and maintain the information your supervisor uses for assignments.
+              {technicianId ? "Update the technician's profile, including their resume." : "Complete and maintain the information your supervisor uses for assignments."}
             </p>
           </div>
         </div>
@@ -121,7 +123,7 @@ export function TechnicianProfileScreen() {
       <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
         <BadgeCheck className="size-5" />
         <span>
-          Your account is approved. Technician number: <strong>{profile.technician_number}</strong>
+          Technician number: <strong>{profile.technician_number}</strong>
         </span>
       </div>
       {origin && profile.qr_code ? <Card className="border-0 shadow-none ring-1 ring-slate-200/80"><CardHeader><CardTitle className="flex items-center gap-2"><QrCode className="size-5 text-sky-600" /> Public profile QR code</CardTitle></CardHeader><CardContent className="flex flex-wrap items-center gap-4"><div className="size-40 rounded-lg border bg-white p-2"><QrCodeSvg value={technicianDetailUrl(origin, profile.qr_code)} label={`${profile.name} public profile`} className="size-full" /></div><div className="min-w-0 flex-1 text-sm"><p className="font-medium text-slate-900">Scan to open this public profile</p><p className="mt-1 break-all text-xs text-slate-500">{technicianDetailUrl(origin, profile.qr_code)}</p></div></CardContent></Card> : null}
@@ -198,7 +200,7 @@ export function TechnicianProfileScreen() {
         {notice ? <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p> : null}
         <div className="flex justify-end">
           <Button type="submit" disabled={saving}>
-            <Save className="size-4" /> {saving ? "Saving…" : "Save profile"}
+            <Save className="size-4" /> {saving ? "Saving…" : technicianId ? "Save technician profile" : "Save profile"}
           </Button>
         </div>
       </form>

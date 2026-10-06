@@ -100,7 +100,7 @@ export default function RegisterPage() {
           <AuthField id="name" name="name" error={fieldErrors.name} label="Full name" type="text" autoComplete="name" placeholder="Your full name" icon={<UserRound aria-hidden="true" className="size-4" />} required />
           <div className="grid gap-5 sm:grid-cols-2">
             <AuthField id="username" name="username" error={fieldErrors.username} label="Username" type="text" autoComplete="username" placeholder="Choose a username" required />
-            <AuthField id="technician-number" name="technician_number" error={fieldErrors.technician_number} label="Technician number" type="text" placeholder="Your technician number" required />
+            <AuthField id="technician-number" name="technician_number" error={fieldErrors.technician_number} label="Technician number" type="text" placeholder="GRIPCO_TECH_0001" pattern="GRIPCO_TECH_[0-9]{4}" title="Use the format GRIPCO_TECH_#### (for example, GRIPCO_TECH_0001)." required />
           </div>
           <AuthField id="password" name="password" error={fieldErrors.password} label="Password" type="password" autoComplete="new-password" placeholder="Choose a password" icon={<LockKeyhole aria-hidden="true" className="size-4" />} required />
           <div className="grid gap-5 sm:grid-cols-2">

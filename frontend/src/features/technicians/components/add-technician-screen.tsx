@@ -69,7 +69,7 @@ export function AddTechnicianScreen({
     const record: TechnicianRecord = {
       id:
         initialRecord?.id ??
-        `TECH-DRAFT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        `GRIPCO_TECH_${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
       name: text("name"),
       discipline,
       qualification: text("qualification"),
