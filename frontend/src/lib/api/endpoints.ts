@@ -15,6 +15,7 @@ export const apiEndpoints = {
   equipment: "/equipment/",
   equipmentSummary: "/equipment/summary/",
   publicEquipment: (token: string) => `/public/equipment/${encodeURIComponent(token)}/`,
+  publicTechnician: (token: string) => `/public/technicians/${encodeURIComponent(token)}/`,
   publicReport: (token: string) => `/public/reports/${encodeURIComponent(token)}/`,
   accessories: "/accessories/",
   allocations: "/allocations/",

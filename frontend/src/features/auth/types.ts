@@ -8,6 +8,7 @@ export interface SignupPayload {
   contact: string;
   discipline: string;
   qualification?: string;
+  iqama_no?: string;
   email?: string;
 }
 export interface CurrentAccount {

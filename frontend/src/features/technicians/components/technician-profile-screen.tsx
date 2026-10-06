@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, Save, UserRound, LogOut, Loader2 } from "lucide-react";
+import { BadgeCheck, Save, UserRound, LogOut, Loader2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import type { CurrentAccount } from "@/features/auth/types";
 import type { Technician } from "@/features/technicians/types";
 import { TechnicianPhoto } from "@/features/technicians/components/technician-photo";
 import { authFetch } from "@/lib/api/client";
+import { QrCodeSvg } from "@/components/shared/qr-code";
+import { technicianDetailUrl } from "@/features/technicians/lib/technician-detail-url";
 
 function Field({ label, name, children }: { label: string; name: string; children: ReactNode }) {
   return <label htmlFor={name} className="grid gap-1.5 text-sm font-medium text-slate-700">{label}{children}</label>;
@@ -25,6 +27,7 @@ export function TechnicianProfileScreen() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [photoPreview, setPhotoPreview] = useState<string>();
+  const [origin, setOrigin] = useState("");
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -45,6 +48,7 @@ export function TechnicianProfileScreen() {
   }
 
   useEffect(() => {
+    setOrigin(window.location.origin);
     let active = true;
     async function load() {
       try {
@@ -70,6 +74,7 @@ export function TechnicianProfileScreen() {
     const text = (name: string) => String(form.get(name) ?? "").trim();
     try {
       if (!(form.get("profile_photo") as File)?.size) form.delete("profile_photo");
+      if (!(form.get("resume") as File)?.size) form.delete("resume");
       if (!text("certification_expiry")) form.delete("certification_expiry");
       const response = await authFetch(`/api/technicians/${profile.id}`, { method: "PATCH", body: form });
       const data = await response.json().catch(() => ({}));
@@ -119,6 +124,7 @@ export function TechnicianProfileScreen() {
           Your account is approved. Technician number: <strong>{profile.technician_number}</strong>
         </span>
       </div>
+      {origin && profile.qr_code ? <Card className="border-0 shadow-none ring-1 ring-slate-200/80"><CardHeader><CardTitle className="flex items-center gap-2"><QrCode className="size-5 text-sky-600" /> Public profile QR code</CardTitle></CardHeader><CardContent className="flex flex-wrap items-center gap-4"><div className="size-40 rounded-lg border bg-white p-2"><QrCodeSvg value={technicianDetailUrl(origin, profile.qr_code)} label={`${profile.name} public profile`} className="size-full" /></div><div className="min-w-0 flex-1 text-sm"><p className="font-medium text-slate-900">Scan to open this public profile</p><p className="mt-1 break-all text-xs text-slate-500">{technicianDetailUrl(origin, profile.qr_code)}</p></div></CardContent></Card> : null}
       <form onSubmit={submit} className="space-y-5">
         <Card className="border-0 shadow-none ring-1 ring-slate-200/80">
           <CardHeader>
@@ -158,6 +164,9 @@ export function TechnicianProfileScreen() {
             <Field label="Location" name="location">
               <Input id="location" name="location" maxLength={200} defaultValue={profile.location} placeholder="City, country" />
             </Field>
+            <Field label="Iqama number" name="iqama_no">
+              <Input id="iqama_no" name="iqama_no" maxLength={50} defaultValue={profile.iqama_no} placeholder="Optional iqama number" />
+            </Field>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-none ring-1 ring-slate-200/80">
@@ -176,6 +185,12 @@ export function TechnicianProfileScreen() {
             </Field>
             <Field label="Certification expiry" name="certification_expiry">
               <Input id="certification_expiry" name="certification_expiry" type="date" defaultValue={profile.certification_expiry ?? ""} />
+            </Field>
+            <Field label="Resume" name="resume">
+              <Input id="resume" name="resume" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+              <span className="text-xs font-normal text-slate-500">
+                PDF or DOCX. {profile.resume ? <a className="font-medium text-sky-700 underline" href={profile.resume} target="_blank" rel="noreferrer">View current resume</a> : "No resume uploaded."}
+              </span>
             </Field>
           </CardContent>
         </Card>

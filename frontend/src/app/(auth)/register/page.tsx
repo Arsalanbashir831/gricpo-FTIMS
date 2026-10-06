@@ -26,6 +26,7 @@ export default function RegisterPage() {
       contact: form.get("contact"),
       discipline: form.get("discipline"),
       qualification: form.get("qualification"),
+      iqama_no: form.get("iqama_no"),
       email: form.get("email"),
     };
     try {
@@ -68,6 +69,7 @@ export default function RegisterPage() {
             <AuthField id="discipline" name="discipline" label="Discipline" type="text" placeholder="Your specialty" required />
           </div>
           <AuthField id="qualification" name="qualification" label="Qualification (optional)" type="text" placeholder="Your qualification" />
+          <AuthField id="iqama-no" name="iqama_no" label="Iqama number (optional)" type="text" placeholder="Your iqama number" maxLength={50} />
           <AuthField id="email" name="email" label="Work email (optional)" type="email" autoComplete="email" placeholder="name@company.com" icon={<Mail aria-hidden="true" className="size-4" />} />
           {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
           <Button className="mt-1 w-full" type="submit" disabled={pending}>
