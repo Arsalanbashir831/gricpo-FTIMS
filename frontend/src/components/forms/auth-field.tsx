@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 type AuthFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   icon?: ReactNode;
+  error?: string[];
 };
 
 export function AuthField({
@@ -12,6 +13,7 @@ export function AuthField({
   icon,
   id,
   label,
+  error,
   ...props
 }: AuthFieldProps) {
   return (
@@ -33,8 +35,12 @@ export function AuthField({
             className,
           )}
           {...props}
+          aria-invalid={error?.length ? true : props["aria-invalid"]}
+          aria-describedby={[props["aria-describedby"], error?.length ? `${id}-error` : undefined].filter(Boolean).join(" ") || undefined}
+          style={error?.length ? { ...props.style, borderColor: "var(--destructive)" } : props.style}
         />
       </div>
+      {error?.length ? <ul id={`${id}-error`} className="space-y-1 text-sm text-destructive">{error.map((message, index) => <li key={index}>{message}</li>)}</ul> : null}
     </div>
   );
 }
