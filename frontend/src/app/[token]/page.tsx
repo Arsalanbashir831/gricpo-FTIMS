@@ -1,64 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Download, ExternalLink, FileText, MapPin, ShieldCheck, UserRound } from "lucide-react";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MapPin, ShieldCheck } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { QrCodeSvg } from "@/components/shared/qr-code";
 import type { PublicTechnician } from "@/features/technicians/types";
 import { apiEndpoints } from "@/lib/api/endpoints";
 import { ApiError, apiRequest } from "@/lib/api/server";
+import { EmployeeCardActions } from "./employee-card-actions";
 
 interface PageProps { params: Promise<{ token: string }> }
-
-async function getTechnician(token: string) {
-  try {
-    return await apiRequest<PublicTechnician>(apiEndpoints.publicTechnician(token));
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) notFound();
-    throw error;
-  }
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const technician = await getTechnician((await params).token);
-  return { title: `${technician.name} · Technician profile` };
-}
-
+async function getTechnician(token: string) { try { return await apiRequest<PublicTechnician>(apiEndpoints.publicTechnician(token)); } catch (error) { if (error instanceof ApiError && error.status === 404) notFound(); throw error; } }
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> { const technician = await getTechnician((await params).token); return { title: `${technician.name} · Employee card` }; }
 function value(value: string | null | undefined) { return value?.trim() || "Not provided"; }
-
 export default async function PublicTechnicianPage({ params }: PageProps) {
-  const token = (await params).token;
-  const technician = await getTechnician(token);
-  const backendBase = (process.env.API_BASE_URL ?? "").replace(/\/+$/, "");
-  const photoUrl = `${backendBase}/public/technicians/${encodeURIComponent(token)}/photo`;
-  const resumeUrl = `${backendBase}/public/technicians/${encodeURIComponent(token)}/resume`;
-  const fields = [
-    ["Technician number", technician.technician_number],
-    ["Discipline", technician.discipline],
-    ["Qualification", value(technician.qualification)],
-    ["Iqama number", value(technician.iqama_no)],
-    ["Contact number", value(technician.contact)],
-    ["Email", value(technician.email)],
-    ["Location", value(technician.location)],
-    ["Certification expiry", value(technician.certification_expiry)],
-  ];
-
-  return <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 lg:py-16">
-    <div className="mx-auto max-w-3xl space-y-6">
-      <header className="text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-sky-100 text-sky-700"><UserRound className="size-7" aria-hidden="true" /></div>
-        <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-sky-700">Public technician profile</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{technician.name}</h1>
-        <p className="mt-2 font-mono text-sm text-slate-500">{technician.technician_number}</p>
-      </header>
-      <Card className="border-0 shadow-sm ring-1 ring-slate-200">
-        <CardHeader className="border-b border-slate-100"><CardTitle className="flex items-center gap-2"><ShieldCheck className="size-5 text-emerald-600" /> Technician details</CardTitle></CardHeader>
-        <CardContent><form className="grid gap-4 sm:grid-cols-2" aria-label="Public technician profile"><div className="sm:col-span-2"><label className="grid gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="public-technician-name">Full name<input id="public-technician-name" readOnly value={technician.name} className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold normal-case tracking-normal text-slate-900" /></label></div>{fields.map(([label, item]) => { const id = `public-${label.toLowerCase().replaceAll(" ", "-")}`; return <label key={label} className="grid gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor={id}>{label}<input id={id} readOnly value={item} className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold normal-case tracking-normal text-slate-900" /></label>; })}<label className="grid gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-500 sm:col-span-2" htmlFor="public-technician-skills">Skills<textarea id="public-technician-skills" readOnly value={value(technician.skills)} rows={3} className="resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900" /></label></form></CardContent>
-      </Card>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <a href={photoUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl bg-white p-4 text-sm font-semibold text-sky-700 ring-1 ring-slate-200 hover:bg-sky-50"><ExternalLink className="size-5" />View profile photo</a>
-        <a href={resumeUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl bg-white p-4 text-sm font-semibold text-sky-700 ring-1 ring-slate-200 hover:bg-sky-50"><Download className="size-5" />Download resume</a>
-      </div>
-      <p className="flex items-center justify-center gap-2 text-center text-xs text-slate-500"><MapPin className="size-3.5" />Public information retrieved from GRIPCO FTIMS</p>
-    </div>
-  </main>;
+  const token = (await params).token; const technician = await getTechnician(token); const backendBase = (process.env.API_BASE_URL ?? "").replace(/\/+$/, "");
+  const photoUrl = `${backendBase}/public/technicians/${encodeURIComponent(token)}/photo`; const resumeUrl = `${backendBase}/public/technicians/${encodeURIComponent(token)}/resume`; const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/${encodeURIComponent(token)}`;
+  const fields = [["Technician number", technician.technician_number], ["Discipline", technician.discipline], ["Qualification", value(technician.qualification)], ["Iqama number", value(technician.iqama_no)], ["Contact", value(technician.contact)], ["Email", value(technician.email)], ["Location", value(technician.location)], ["Certification expiry", value(technician.certification_expiry)]];
+  return <main className="min-h-screen bg-slate-100 px-4 py-8 sm:px-6 print:bg-white print:p-0"><div className="mx-auto max-w-3xl"><Card className="overflow-hidden border-0 shadow-xl ring-1 ring-slate-200 print:shadow-none print:ring-0"><div className="bg-gradient-to-r from-sky-800 to-sky-600 px-6 py-6 text-white sm:px-8"><div className="flex flex-wrap items-center gap-4"><img src="/logo.avif" alt="GRIPCO" className="h-12 w-auto rounded bg-white object-contain p-1" /><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-100">GRIPCO FTIMS</p><h1 className="text-2xl font-bold leading-tight">Employee identification card</h1></div></div></div><CardContent className="p-6 sm:p-8"><div className="grid gap-6 sm:grid-cols-[140px_minmax(0,1fr)_112px] sm:items-start"><div className="overflow-hidden rounded-xl border-4 border-sky-100 bg-slate-100"><img src={photoUrl} alt={`${technician.name} profile`} className="aspect-[4/5] w-full object-cover" /></div><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Authorized technician</p><h2 className="mt-1 break-words text-3xl font-bold leading-tight tracking-tight text-slate-950">{technician.name}</h2><p className="mt-1 break-all font-mono text-sm text-slate-500">{technician.technician_number}</p><dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">{fields.slice(1).map(([label, item]) => <div key={label} className="min-w-0"><dt className="text-xs text-slate-500">{label}</dt><dd className="break-words font-semibold text-slate-900">{item}</dd></div>)}</dl></div><div className="mx-auto w-28 rounded-lg border bg-white p-2"><QrCodeSvg value={publicUrl} label={`${technician.name} employee card`} className="size-full" /><p className="mt-1 text-center text-[10px] leading-tight text-slate-500">Scan to verify</p></div></div><div className="mt-6 border-t pt-4 text-sm"><p className="font-semibold text-slate-800">Skills</p><p className="mt-1 break-words text-slate-600">{value(technician.skills)}</p></div><EmployeeCardActions photoUrl={photoUrl} /><a href={resumeUrl} target="_blank" rel="noreferrer" className="mt-4 inline-block text-sm font-medium text-sky-700 underline print:hidden">View resume</a></CardContent></Card><p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-slate-500 print:hidden"><MapPin className="size-3.5" />Scan the QR code to open this card</p></div></main>;
 }
+

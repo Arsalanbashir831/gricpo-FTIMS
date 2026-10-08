@@ -126,7 +126,7 @@ export function TechnicianProfileScreen({ technicianId }: { technicianId?: numbe
           Technician number: <strong>{profile.technician_number}</strong>
         </span>
       </div>
-      {origin && profile.qr_code ? <Card className="border-0 shadow-none ring-1 ring-slate-200/80"><CardHeader><CardTitle className="flex items-center gap-2"><QrCode className="size-5 text-sky-600" /> Public profile QR code</CardTitle></CardHeader><CardContent className="flex flex-wrap items-center gap-4"><div className="size-40 rounded-lg border bg-white p-2"><QrCodeSvg value={technicianDetailUrl(origin, profile.qr_code)} label={`${profile.name} public profile`} className="size-full" /></div><div className="min-w-0 flex-1 text-sm"><p className="font-medium text-slate-900">Scan to open this public profile</p><p className="mt-1 break-all text-xs text-slate-500">{technicianDetailUrl(origin, profile.qr_code)}</p></div></CardContent></Card> : null}
+      {origin && profile.qr_code ? <Card className="border-0 shadow-none ring-1 ring-slate-200/80"><CardHeader><CardTitle className="flex items-center gap-2"><QrCode className="size-5 text-sky-600" /> Public profile QR code</CardTitle></CardHeader><CardContent className="flex flex-wrap items-center gap-4"><div className="size-40 rounded-lg border bg-white p-2"><QrCodeSvg value={technicianDetailUrl(origin, profile.qr_code)} label={`${profile.name} public profile`} className="size-full" /></div><div className="min-w-0 flex-1 text-sm"><p className="font-medium text-slate-900">Scan to open this public profile</p><p className="mt-1 break-all text-xs text-slate-500">{technicianDetailUrl(origin, profile.qr_code)}</p><a href={technicianDetailUrl(origin, profile.qr_code)} target="_blank" rel="noreferrer" className="mt-3 inline-flex h-9 items-center rounded-lg bg-sky-600 px-3 text-sm font-medium text-white hover:bg-sky-700">View employee card</a></div></CardContent></Card> : null}
       <form onSubmit={submit} className="space-y-5">
         <Card className="border-0 shadow-none ring-1 ring-slate-200/80">
           <CardHeader>
@@ -207,3 +207,4 @@ export function TechnicianProfileScreen({ technicianId }: { technicianId?: numbe
     </div>
   );
 }
+
